@@ -1,4 +1,5 @@
 pub mod console;
+pub mod html;
 pub mod json;
 pub mod sarif;
 
@@ -15,6 +16,7 @@ pub enum OutputFormat {
     Console,
     Json,
     Sarif,
+    Html,
 }
 
 impl OutputFormat {
@@ -23,6 +25,7 @@ impl OutputFormat {
             "console" | "text" => Some(Self::Console),
             "json" => Some(Self::Json),
             "sarif" => Some(Self::Sarif),
+            "html" => Some(Self::Html),
             _ => None,
         }
     }
@@ -39,5 +42,6 @@ pub fn render(
         OutputFormat::Console => Ok(console::render(findings, verdict)),
         OutputFormat::Json => json::render(findings, verdict),
         OutputFormat::Sarif => sarif::render(findings, target_name),
+        OutputFormat::Html => html::render(findings, verdict, target_name),
     }
 }

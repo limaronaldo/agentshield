@@ -32,7 +32,7 @@ enum Commands {
         #[arg(long, short = 'c')]
         config: Option<PathBuf>,
 
-        /// Output format (console, json, sarif)
+        /// Output format (console, json, sarif, html)
         #[arg(long, short = 'f', default_value = "console")]
         format: String,
 
