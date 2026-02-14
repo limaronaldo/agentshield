@@ -27,15 +27,32 @@ pub fn all_adapters() -> Vec<Box<dyn Adapter>> {
     ]
 }
 
-/// Auto-detect the framework and load scan targets.
+/// Auto-detect all matching frameworks and load scan targets from each.
+///
+/// Repos may contain both MCP and OpenClaw artifacts — all matching
+/// adapters contribute targets rather than stopping at the first match.
 pub fn auto_detect_and_load(root: &Path) -> Result<Vec<ScanTarget>> {
     let adapters = all_adapters();
+    let mut all_targets = Vec::new();
 
     for adapter in &adapters {
         if adapter.detect(root) {
-            return adapter.load(root);
+            match adapter.load(root) {
+                Ok(targets) => all_targets.extend(targets),
+                Err(e) => {
+                    tracing::warn!(
+                        framework = %adapter.framework(),
+                        error = %e,
+                        "adapter failed to load, skipping"
+                    );
+                }
+            }
         }
     }
 
-    Err(ShieldError::NoAdapter(root.display().to_string()))
+    if all_targets.is_empty() {
+        return Err(ShieldError::NoAdapter(root.display().to_string()));
+    }
+
+    Ok(all_targets)
 }

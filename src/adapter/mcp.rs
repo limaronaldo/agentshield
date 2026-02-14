@@ -178,17 +178,10 @@ fn parse_dependencies(root: &Path) -> dependency_surface::DependencySurface {
     use crate::ir::dependency_surface::*;
     let mut surface = DependencySurface::default();
 
-    // Parse requirements.txt
+    // Parse requirements.txt as a dependency manifest (NOT a lockfile)
     let req_file = root.join("requirements.txt");
     if req_file.exists() {
         if let Ok(content) = std::fs::read_to_string(&req_file) {
-            surface.lockfile = Some(LockfileInfo {
-                path: req_file.clone(),
-                format: LockfileFormat::PipRequirements,
-                all_pinned: true,
-                all_hashed: false,
-            });
-
             for (idx, line) in content.lines().enumerate() {
                 let line = line.trim();
                 if line.is_empty() || line.starts_with('#') || line.starts_with('-') {
@@ -200,17 +193,11 @@ fn parse_dependencies(root: &Path) -> dependency_surface::DependencySurface {
                         Some(line[pos + 2..].trim().to_string()),
                     )
                 } else if let Some(pos) = line.find(">=") {
-                    if let Some(lockfile) = &mut surface.lockfile {
-                        lockfile.all_pinned = false;
-                    }
                     (
                         line[..pos].trim().to_string(),
                         Some(line[pos..].trim().to_string()),
                     )
                 } else {
-                    if let Some(lockfile) = &mut surface.lockfile {
-                        lockfile.all_pinned = false;
-                    }
                     (line.to_string(), None)
                 };
 
@@ -230,6 +217,24 @@ fn parse_dependencies(root: &Path) -> dependency_surface::DependencySurface {
                     }),
                 });
             }
+        }
+    }
+
+    // Check for actual Python lockfiles
+    for (filename, format) in [
+        ("Pipfile.lock", LockfileFormat::PipenvLock),
+        ("poetry.lock", LockfileFormat::PoetryLock),
+        ("uv.lock", LockfileFormat::UvLock),
+    ] {
+        let lock_path = root.join(filename);
+        if lock_path.exists() {
+            surface.lockfile = Some(LockfileInfo {
+                path: lock_path,
+                format,
+                all_pinned: true,
+                all_hashed: false,
+            });
+            break;
         }
     }
 
