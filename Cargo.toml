@@ -1,0 +1,94 @@
+[package]
+name = "agentshield"
+version = "0.1.0"
+edition = "2021"
+authors = ["Ronaldo Lima"]
+description = "Security scanner for AI agent extensions — offline-first, multi-framework, SARIF output"
+license = "MIT"
+repository = "https://github.com/limaronaldo/agentshield"
+homepage = "https://github.com/limaronaldo/agentshield"
+keywords = ["security", "ai", "mcp", "static-analysis", "sarif"]
+categories = ["development-tools", "command-line-utilities"]
+readme = "README.md"
+
+[lib]
+name = "agentshield"
+path = "src/lib.rs"
+
+[[bin]]
+name = "agentshield"
+path = "src/bin/cli.rs"
+
+[features]
+default = ["python"]
+
+# Language parsers (feature-gated to control binary size)
+python = ["dep:tree-sitter-python"]
+
+# All features
+full = ["python"]
+
+[dependencies]
+# CLI
+clap = { version = "4.4", features = ["derive", "env", "color"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Error handling
+thiserror = "1.0"
+
+# Tree-sitter core + language grammars
+tree-sitter = "0.24"
+tree-sitter-python = { version = "0.23", optional = true }
+
+# Regex for shell parser, source/sink patterns
+regex = "1.10"
+once_cell = "1.19"
+
+# File walking (.gitignore-aware)
+walkdir = "2.5"
+ignore = "0.4"
+glob = "0.3"
+
+# Hashing
+sha2 = "0.10"
+hex = "0.4"
+
+# Config parsing
+toml = "0.8"
+
+# Timestamps
+chrono = { version = "0.4", features = ["serde"] }
+
+# UUID for SARIF run IDs
+uuid = { version = "1.6", features = ["v4"] }
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Typosquat detection
+levenshtein = "1.0"
+
+# Semver parsing
+semver = "1.0"
+
+# URL parsing
+url = "2.5"
+
+[dev-dependencies]
+tempfile = "3.9"
+pretty_assertions = "1.4"
+proptest = "1.4"
+
+[[bench]]
+name = "scan"
+harness = false
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
