@@ -4,7 +4,8 @@
 
 [![CI](https://github.com/limaronaldo/agentshield/actions/workflows/ci.yml/badge.svg)](https://github.com/limaronaldo/agentshield/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Crates.io](https://img.shields.io/crates/v/agentshield.svg)](https://crates.io/crates/agentshield)
+[![Crates.io](https://img.shields.io/crates/v/agent-shield.svg)](https://crates.io/crates/agent-shield)
+[![docs.rs](https://img.shields.io/docsrs/agent-shield)](https://docs.rs/agent-shield)
 
 AgentShield scans MCP servers, OpenClaw skills, and other AI agent extensions for security vulnerabilities **before they reach production**. Single Rust binary, zero data sharing, runs entirely on your machine.
 
@@ -62,7 +63,7 @@ Findings appear as PR annotations and in the repository's **Security > Code scan
 
 ```bash
 # Install from crates.io
-cargo install agentshield
+cargo install agent-shield
 
 # Scan current directory
 agentshield scan .
@@ -79,6 +80,10 @@ agentshield list-rules
 # Create starter config
 agentshield init
 ```
+
+### Pre-built binaries
+
+Download from the [latest release](https://github.com/limaronaldo/agentshield/releases/latest) — available for Linux (x86_64, aarch64), macOS (x86_64, aarch64), and Windows (x86_64).
 
 ### From source
 
@@ -177,6 +182,26 @@ ignore_rules = ["SHIELD-008"]
 
 ---
 
+## Language Support
+
+| Language | Parser | Feature Flag |
+|----------|--------|-------------|
+| Python | tree-sitter AST | `python` (default) |
+| TypeScript/TSX | tree-sitter AST | `typescript` (default) |
+| JavaScript/JSX | tree-sitter AST | `typescript` (default) |
+| Shell (bash/zsh) | Regex | always on |
+| JSON Schema | MCP tool input parser | always on |
+
+Both tree-sitter parsers are feature-gated. Build without them for a smaller binary:
+
+```bash
+cargo build --no-default-features   # regex fallback for all languages
+cargo build --features python        # only Python AST
+cargo build --features full          # all parsers
+```
+
+---
+
 ## Architecture
 
 ```
@@ -190,7 +215,8 @@ CLI / GitHub Action
   ▼    ▼            ▼
 Adapters  Parsers    Supply Chain
 MCP,      Python,    Analysis
-OpenClaw  Shell,
+OpenClaw  TypeScript,
+          Shell,
           JSON Schema
   └────┬────────────┘
        ▼
