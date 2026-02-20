@@ -1,6 +1,6 @@
 # Next Steps — Post v0.1.0
 
-Status: v0.2.3 shipped Feb 20, 2026 with 5-platform release binaries. TypeScript tree-sitter parser, crates.io, Homebrew, GitHub Action e2e, real-world validation (170 → 69 findings with `--ignore-tests`), cross-file validation tracking, PR inline annotations — all done.
+Status: v0.2.4 in development. v0.2.3 shipped Feb 20, 2026 with 5-platform release binaries. TypeScript tree-sitter parser, crates.io, Homebrew, GitHub Action e2e, real-world validation (170 → 69 findings with `--ignore-tests`), cross-file validation tracking, PR inline annotations, CrewAI + LangChain adapters — all done.
 
 ---
 
@@ -83,8 +83,8 @@ Features deferred from v0.1.0:
 | ~~GitHub Marketplace submission~~ | ~~[IBVI-483](https://linear.app/mbras/issue/IBVI-483)~~ | ~~Done v0.2.1~~ | ~~High — [listed](https://github.com/marketplace/actions/agentshield-security-scanner)~~ |
 | Blog post / announcement | [IBVI-484](https://linear.app/mbras/issue/IBVI-484) | Medium | High — launch content |
 | VS Code extension | [IBVI-485](https://linear.app/mbras/issue/IBVI-485) | Medium | Medium — inline findings |
-| LangChain adapter | [IBVI-486](https://linear.app/mbras/issue/IBVI-486) | Medium | Medium — new framework |
-| CrewAI adapter | [IBVI-487](https://linear.app/mbras/issue/IBVI-487) | Low | Low — new framework |
+| ~~LangChain adapter~~ | ~~[IBVI-486](https://linear.app/mbras/issue/IBVI-486)~~ | ~~Done v0.2.4~~ | ~~Done — 4 adapters (MCP, OpenClaw, CrewAI, LangChain), 95 tests~~ |
+| ~~CrewAI adapter~~ | ~~[IBVI-487](https://linear.app/mbras/issue/IBVI-487)~~ | ~~Done v0.2.4~~ | ~~Done — 3 adapters (MCP, OpenClaw, CrewAI), 89 tests~~ |
 | ~~PR annotation test~~ | ~~[IBVI-488](https://linear.app/mbras/issue/IBVI-488)~~ | ~~Done v0.2.3~~ | ~~Done — [PR #1](https://github.com/limaronaldo/agentshield-test/pull/1), 7 inline annotations~~ |
 
 ---
@@ -120,8 +120,8 @@ Eliminates false positives from internal helper functions that receive already-v
 | ~~PR annotation test~~ | ~~[IBVI-488](https://linear.app/mbras/issue/IBVI-488)~~ | ~~Done v0.2.3~~ | ~~Done — [PR #1](https://github.com/limaronaldo/agentshield-test/pull/1)~~ |
 | Blog post / announcement | [IBVI-484](https://linear.app/mbras/issue/IBVI-484) | Medium | High — launch content |
 | VS Code extension | [IBVI-485](https://linear.app/mbras/issue/IBVI-485) | Medium | Medium — inline findings |
-| LangChain adapter | [IBVI-486](https://linear.app/mbras/issue/IBVI-486) | Medium | Medium — new framework |
-| CrewAI adapter | [IBVI-487](https://linear.app/mbras/issue/IBVI-487) | Low | Low — new framework |
+| ~~LangChain adapter~~ | ~~[IBVI-486](https://linear.app/mbras/issue/IBVI-486)~~ | ~~Done v0.2.4~~ | ~~Done — 4 adapters (MCP, OpenClaw, CrewAI, LangChain), 95 tests~~ |
+| ~~CrewAI adapter~~ | ~~[IBVI-487](https://linear.app/mbras/issue/IBVI-487)~~ | ~~Done v0.2.4~~ | ~~Done~~ |
 
 ---
 
@@ -189,6 +189,65 @@ Created as part of this test. 5-platform binary release:
 - `agentshield-v0.2.3-x86_64-pc-windows-msvc.zip`
 
 Release: https://github.com/limaronaldo/agentshield/releases/tag/v0.2.3
+
+---
+
+## 9. v0.2.4 — CrewAI Adapter (IBVI-487) — Done
+
+Completed Feb 20, 2026. See [IBVI-487](https://linear.app/mbras/issue/IBVI-487).
+
+### What it does
+
+Detects CrewAI Python projects and feeds their source files through the existing 3-phase adapter pipeline. CrewAI tools are defined as `BaseTool` subclasses (with `_run()` method) or `@tool("name")` decorated functions — both patterns contain the same security-relevant operations (subprocess, requests, eval, file IO) that the existing Python parser and all 12 detectors already handle.
+
+### Detection
+
+Checks for ANY of:
+- `pyproject.toml` containing `crewai` in dependencies or `[tool.crewai]` section
+- `requirements.txt` containing `crewai` or `crewai-tools`
+- Python files importing `from crewai` / `import crewai` / `from crewai_tools`
+
+### Implementation
+
+- **`src/adapter/crewai.rs`** — `CrewAiAdapter` with `detect()` and `load()` using `Framework::CrewAi`
+- **`src/adapter/mod.rs`** — registered in `all_adapters()`
+- **`src/adapter/mcp.rs`** — `collect_source_files()`, `parse_dependencies()`, `parse_provenance()` promoted to `pub(super)` for reuse
+- **`tests/fixtures/crewai_project/`** — test fixture with `pyproject.toml`, `requirements.txt`, `vuln_tool.py` (SHIELD-001), `fetch_tool.py` (SHIELD-003)
+- 6 new tests (89 total, up from 83)
+- CLI scan produces 7 findings on fixture: SHIELD-001, -003, -007, -009 x3, -012
+
+### Key design decisions
+
+- **Python-only filtering**: `load()` collects all source files via `collect_source_files()` then retains only Python files, since CrewAI is a Python-only framework
+- **Reuses shared helpers**: `parse_dependencies()` and `parse_provenance()` from `mcp.rs` handle `pyproject.toml` and `requirements.txt` — no duplication
+- **No parser changes needed**: the existing Python parser already detects all security patterns (subprocess, requests, eval, file ops, GitPython, async HTTP clients)
+- **No detector changes needed**: `Framework::CrewAi` was already in the IR enum; detectors operate on `ScanTarget` regardless of framework
+
+---
+
+## 10. v0.2.4 — LangChain Adapter (IBVI-486) — Done
+
+Completed Feb 20, 2026. See [IBVI-486](https://linear.app/mbras/issue/IBVI-486).
+
+### What it does
+
+Detects LangChain Python projects and feeds their source files through the existing 3-phase adapter pipeline. LangChain tools are defined as `BaseTool` subclasses (with `_run()` method), `@tool`-decorated functions, or `StructuredTool.from_function()` calls. Also detects LangGraph projects via `langgraph.json`. Same design as CrewAI adapter — no parser or detector changes needed.
+
+### Detection
+
+Checks for ANY of:
+- `pyproject.toml` containing `langchain` or `langgraph` in dependencies
+- `requirements.txt` containing lines starting with `langchain` or `langgraph`
+- `langgraph.json` configuration file
+- Python files importing `from langchain` / `from langchain_core` / `from langgraph`
+
+### Implementation
+
+- **`src/adapter/langchain.rs`** — `LangChainAdapter` with `detect()` and `load()` using `Framework::LangChain`
+- **`src/adapter/mod.rs`** — registered in `all_adapters()`
+- **`tests/fixtures/langchain_project/`** — test fixture with `pyproject.toml`, `requirements.txt`, `langgraph.json`, `shell_tool.py` (SHIELD-001), `fetch_tool.py` (SHIELD-003)
+- 6 new tests (95 total, up from 89)
+- CLI scan produces 7 findings on fixture: SHIELD-001, -003, -007, -009 x3, -012
 
 ---
 

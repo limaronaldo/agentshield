@@ -25,8 +25,10 @@ agentshield/
 │   │   └── provenance_surface.rs # Author, repo, license
 │   ├── adapter/                  # Framework → IR (3-phase pipeline)
 │   │   ├── mod.rs                # Adapter trait, auto_detect_and_load(root, ignore_tests)
-│   │   ├── mcp.rs                # MCP server adapter + is_test_file() helper
-│   │   └── openclaw.rs           # OpenClaw SKILL.md adapter
+│   │   ├── mcp.rs                # MCP server adapter + is_test_file() + shared helpers
+│   │   ├── openclaw.rs           # OpenClaw SKILL.md adapter
+│   │   ├── crewai.rs             # CrewAI adapter (BaseTool, @tool)
+│   │   └── langchain.rs          # LangChain adapter (@tool, BaseTool, langgraph)
 │   ├── parser/                   # Language parsers
 │   │   ├── mod.rs                # Parser trait, ParsedFile, FunctionDef, CallSite
 │   │   ├── python.rs             # tree-sitter Python + regex patterns
@@ -51,13 +53,15 @@ agentshield/
 │   │   ├── sarif.rs              # SARIF 2.1.0
 │   │   └── html.rs               # Self-contained HTML
 │   └── config/                   # .agentshield.toml parsing (policy + scan sections)
-├── tests/fixtures/               # Test MCP servers (safe + vulnerable)
-│   └── mcp_servers/
-│       ├── safe_calculator/      # Zero-finding baseline
-│       ├── safe_filesystem/      # Cross-file validation test (v0.2.2)
-│       ├── vuln_cmd_inject/      # SHIELD-001 true positive
-│       ├── vuln_ssrf/            # SHIELD-003 true positive
-│       └── vuln_cred_exfil/      # SHIELD-002 true positive
+├── tests/fixtures/               # Test fixtures (safe + vulnerable)
+│   ├── mcp_servers/
+│   │   ├── safe_calculator/      # Zero-finding baseline
+│   │   ├── safe_filesystem/      # Cross-file validation test (v0.2.2)
+│   │   ├── vuln_cmd_inject/      # SHIELD-001 true positive
+│   │   ├── vuln_ssrf/            # SHIELD-003 true positive
+│   │   └── vuln_cred_exfil/      # SHIELD-002 true positive
+│   ├── crewai_project/           # CrewAI adapter test (v0.2.4)
+│   └── langchain_project/       # LangChain adapter test (v0.2.4)
 ├── .github/workflows/
 │   ├── ci.yml                    # Test + clippy + fmt + smoke
 │   └── release.yml               # 5-platform binary builds
@@ -70,7 +74,7 @@ agentshield/
 # Build
 cargo build --release
 
-# Test (83 tests)
+# Test (95 tests)
 cargo test
 
 # Lint
@@ -170,10 +174,13 @@ CLI flag overrides config (`options.ignore_tests || config.scan.ignore_tests`).
 ## Adding a New Adapter
 
 1. Create `src/adapter/your_framework.rs`
-2. Implement `Adapter` trait (`name()`, `detect()`, `load()`)
+2. Implement `Adapter` trait (`framework()`, `detect()`, `load()`)
 3. Register in `src/adapter/mod.rs` → `all_adapters()`
 4. `detect()` checks for framework-specific files
-5. `load()` uses parsers to populate `ScanTarget`
+5. `load()` uses the 3-phase pipeline (parse → cross-file analysis → merge)
+6. Reuse shared helpers from `mcp.rs`: `collect_source_files()`, `parse_dependencies()`, `parse_provenance()`
+
+**Existing adapters:** MCP (`mcp.rs`), OpenClaw (`openclaw.rs`), CrewAI (`crewai.rs`), LangChain (`langchain.rs`)
 
 ## Conventions
 
@@ -196,3 +203,4 @@ CLI flag overrides config (`options.ignore_tests || config.scan.ignore_tests`).
 | 0.2.1 | 69 | Async HTTP detection, GitPython, typosquat allowlist, Marketplace |
 | 0.2.2 | 83 | Cross-file validation tracking (IBVI-482) |
 | 0.2.3 | 83 | `--ignore-tests` flag, `[scan]` config section, 5-platform release, PR annotations verified |
+| 0.2.4 | 95 | CrewAI + LangChain adapters (IBVI-486, -487) — 4 adapters total, shared helpers |
