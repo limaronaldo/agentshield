@@ -5,6 +5,37 @@ All notable changes to AgentShield will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.4] - 2026-02-20
+
+### Added
+
+- **CrewAI adapter (IBVI-487)** — auto-detects CrewAI Python projects via `pyproject.toml`, `requirements.txt`, or Python imports; reuses existing Python parser and all 12 detectors
+- **LangChain adapter (IBVI-486)** — auto-detects LangChain/LangGraph projects via `pyproject.toml`, `requirements.txt`, `langgraph.json`, or Python imports
+- **Shared adapter helpers** — `collect_source_files()`, `parse_dependencies()`, `parse_provenance()` promoted to `pub(super)` in `mcp.rs` for reuse across adapters
+- Test fixtures: `crewai_project/` (SHIELD-001, -003) and `langchain_project/` (SHIELD-001, -003)
+- 12 new tests (95 total, up from 83)
+
+### Changed
+
+- Version bump: 0.2.3 → 0.2.4
+- 4 framework adapters total: MCP, OpenClaw, CrewAI, LangChain
+
+## [0.2.3] - 2026-02-20
+
+### Added
+
+- **Test file exclusion (`--ignore-tests`)** — filters test files at file-walking stage before parsing
+  - `is_test_file()` matches directories (`test/`, `tests/`, `__tests__/`, `__pycache__/`), suffixes (`.test.*`, `.spec.*`), prefixes (`test_*.py`), and config files (`conftest.py`, `jest.config.*`)
+  - Available via CLI flag, `.agentshield.toml` `[scan] ignore_tests = true`, GitHub Action input, and library API
+  - `ignore_tests: bool` parameter added to `Adapter::load()` and `auto_detect_and_load()`
+- **PR inline annotations verified (IBVI-488)** — tested on [`agentshield-test` PR #1](https://github.com/limaronaldo/agentshield-test/pull/1) with 7 inline annotations on `tools.py`
+- 5-platform release binaries
+
+### Changed
+
+- Version bump: 0.2.2 → 0.2.3
+- Re-scan of 7 Anthropic reference servers: 170 → 69 findings (59% reduction), signal-to-noise ratio 0.53 → 0.99
+
 ## [0.2.2] - 2026-02-20
 
 ### Added
@@ -128,6 +159,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Typosquat detection via Levenshtein distance against popular packages
   - Unpinned dependency version detection
 
+[0.2.4]: https://github.com/limaronaldo/agentshield/releases/tag/v0.2.4
+[0.2.3]: https://github.com/limaronaldo/agentshield/releases/tag/v0.2.3
 [0.2.2]: https://github.com/limaronaldo/agentshield/releases/tag/v0.2.2
 [0.2.1]: https://github.com/limaronaldo/agentshield/releases/tag/v0.2.1
 [0.2.0]: https://github.com/limaronaldo/agentshield/releases/tag/v0.2.0

@@ -7,7 +7,7 @@
 [![Crates.io](https://img.shields.io/crates/v/agent-shield.svg)](https://crates.io/crates/agent-shield)
 [![docs.rs](https://img.shields.io/docsrs/agent-shield)](https://docs.rs/agent-shield)
 
-AgentShield scans MCP servers, OpenClaw skills, and other AI agent extensions for security vulnerabilities **before they reach production**. Single Rust binary, zero data sharing, runs entirely on your machine.
+AgentShield scans MCP servers, OpenClaw skills, LangChain tools, CrewAI agents, and other AI agent extensions for security vulnerabilities **before they reach production**. Single Rust binary, zero data sharing, runs entirely on your machine.
 
 ---
 
@@ -28,7 +28,7 @@ AgentShield catches these patterns with 12 built-in detectors and cross-file val
 |---------|:-----------:|:--------:|:--------------:|
 | Rust single binary | Yes | No (Python) | No (Cloud) |
 | Offline / local-first | Yes | Partial | No |
-| Multi-framework | MCP, OpenClaw | MCP only | MCP only |
+| Multi-framework | MCP, OpenClaw, LangChain, CrewAI | MCP only | MCP only |
 | Cross-file analysis | Yes | No | No |
 | SARIF output | Yes | No | No |
 | GitHub Action | Yes | No | No |
@@ -186,8 +186,8 @@ ignore_tests = true
 |-----------|--------|---------|
 | MCP (Model Context Protocol) | Supported | Auto-detects `package.json` with MCP SDK + Python source |
 | OpenClaw | Supported | Auto-detects `SKILL.md` files |
-| LangChain | Planned | — |
-| CrewAI | Planned | — |
+| CrewAI | Supported | Auto-detects `pyproject.toml`/`requirements.txt` with CrewAI deps or Python imports |
+| LangChain / LangGraph | Supported | Auto-detects `pyproject.toml`/`requirements.txt`/`langgraph.json` with LangChain deps or Python imports |
 
 ---
 
@@ -224,7 +224,9 @@ CLI / GitHub Action
   ▼    ▼            ▼
 Adapters  Parsers    Supply Chain
 MCP,      Python,    Analysis
-OpenClaw  TypeScript,
+OpenClaw, TypeScript,
+CrewAI,
+LangChain
           Shell,
           JSON Schema
   └────┬────────────┘

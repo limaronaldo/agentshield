@@ -21,9 +21,11 @@ and output formatters produce different report formats.
 ### 1. Adapter (Framework Detection)
 
 ```
-src/adapter/mod.rs      — Adapter trait, auto_detect_and_load()
-src/adapter/mcp.rs      — MCP server adapter
-src/adapter/openclaw.rs — OpenClaw SKILL.md adapter
+src/adapter/mod.rs       — Adapter trait, auto_detect_and_load()
+src/adapter/mcp.rs       — MCP server adapter + shared helpers (pub(super))
+src/adapter/openclaw.rs  — OpenClaw SKILL.md adapter
+src/adapter/crewai.rs    — CrewAI Python adapter
+src/adapter/langchain.rs — LangChain / LangGraph Python adapter
 ```
 
 Each adapter implements:
@@ -39,6 +41,8 @@ pub trait Adapter: Send + Sync {
 - `detect()` checks for framework-specific files (e.g., `package.json` with MCP SDK)
 - `load()` uses parsers to populate a `ScanTarget`; when `ignore_tests` is true, test files are filtered out before parsing via `is_test_file()`
 - **All matching adapters run** — a project can be both an MCP server and contain OpenClaw skills
+- **Shared helpers** — `collect_source_files()`, `parse_dependencies()`, `parse_provenance()` in `mcp.rs` are `pub(super)` and reused by CrewAI and LangChain adapters
+- **Python-only adapters** (CrewAI, LangChain) collect all source files then filter to `.py` only
 
 ### 2. Parser (Language Analysis)
 
@@ -223,13 +227,13 @@ All formatters receive `(&[Finding], &PolicyVerdict)` and produce a `String`.
                     │  auto_detect_and_load(path, ignore_tests) │
                     └──────────┬───────────────────────────────┘
                                │
-              ┌────────────────┼────────────────┐
-              ▼                ▼                ▼
-        ┌──────────┐   ┌──────────┐    ┌───────────┐
-        │ MCP      │   │ OpenClaw │    │ (future)  │
-        │ Adapter  │   │ Adapter  │    │ LangChain │
-        └────┬─────┘   └────┬─────┘    └───────────┘
-             │               │
+              ┌───────────┬────────────┬────────────┐
+              ▼           ▼            ▼            ▼
+        ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌───────────┐
+        │   MCP    │ │ OpenClaw │ │  CrewAI  │ │ LangChain │
+        │ Adapter  │ │ Adapter  │ │ Adapter  │ │  Adapter  │
+        └────┬─────┘ └────┬─────┘ └────┬─────┘ └─────┬─────┘
+             │             │            │             │
              │  3-phase pipeline per adapter:
              │
              │  Phase 0: Walk files (skip test files if ignore_tests)

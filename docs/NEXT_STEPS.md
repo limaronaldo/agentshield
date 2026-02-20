@@ -1,6 +1,6 @@
 # Next Steps — Post v0.1.0
 
-Status: v0.2.4 in development. v0.2.3 shipped Feb 20, 2026 with 5-platform release binaries. TypeScript tree-sitter parser, crates.io, Homebrew, GitHub Action e2e, real-world validation (170 → 69 findings with `--ignore-tests`), cross-file validation tracking, PR inline annotations, CrewAI + LangChain adapters — all done.
+Status: v0.2.4 complete. 4 framework adapters (MCP, OpenClaw, CrewAI, LangChain), 95 tests, 12 detectors. TypeScript tree-sitter parser, crates.io, Homebrew, GitHub Action e2e, real-world validation (170 → 69 findings with `--ignore-tests`), cross-file validation tracking, PR inline annotations — all done.
 
 ---
 
