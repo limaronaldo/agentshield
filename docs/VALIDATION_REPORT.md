@@ -229,3 +229,65 @@ Test file findings (~79) remain with default settings — use `--ignore-tests` t
 | **P2** | ~~Typosquat allowlist~~ | Fixed v0.2.1 | Done |
 | **P3** | ~~Cross-file validation tracking~~ | Fixed v0.2.2 | Done |
 | **P2** | ~~Test file exclusion (`--ignore-tests`)~~ | ~~Reduces noise ~60%~~ | **Done v0.2.3** |
+
+---
+
+## v0.2.3 Update: Re-Scan with `--ignore-tests`
+
+**Date:** February 20, 2026
+**Scanner:** AgentShield v0.2.3 (commit `12c9ce3`)
+
+### Full Re-Scan Results
+
+Re-scanned all 7 Anthropic reference servers with v0.2.3, comparing default scan vs `--ignore-tests`:
+
+| Server | v0.2.0 | v0.2.3 (default) | v0.2.3 (`--ignore-tests`) | Reduction |
+|--------|--------|-------------------|---------------------------|-----------|
+| **everything** | 20 | 19 | 19 | 0 (no test files) |
+| **fetch** | 4 | 3 | 3 | 0 (no test files) |
+| **filesystem** | 101 | 93 | **20** | **-73 (78%)** |
+| **git** | 9 | 9 | **7** | **-2 (22%)** |
+| **memory** | 25 | 24 | **10** | **-14 (58%)** |
+| **sequentialthinking** | 11 | 10 | 10 | 0 (no test files) |
+| **time** | 0 | 0 | 0 | — |
+| **Total** | **170** | **158** | **69** | **-89 (56%)** |
+
+### Two sources of improvement
+
+1. **Cross-file analysis (v0.2.2):** 170 → 158 (default scan) — **12 fewer findings** from sanitizer-aware validation tracking eliminating production code FPs in filesystem server
+2. **`--ignore-tests` (v0.2.3):** 158 → 69 — **89 fewer findings (56%)** from filtering test files
+
+### Combined improvement: v0.2.0 → v0.2.3 (`--ignore-tests`)
+
+**170 → 69 findings (59% total reduction)**
+
+### Breakdown by server
+
+**filesystem** (biggest impact):
+- v0.2.0: 101 findings (54 SHIELD-004 + 33 SHIELD-006 + 13 SHIELD-009 + 1 SHIELD-012)
+- v0.2.3 default: 93 (cross-file eliminated 8 production FPs)
+- v0.2.3 `--ignore-tests`: 20 (5 SHIELD-004 + 2 SHIELD-006 + 12 SHIELD-009 + 1 SHIELD-012)
+- 73 test-file findings eliminated: 43 SHIELD-004, 30 SHIELD-006
+
+**memory** (second biggest):
+- v0.2.0: 25 findings
+- v0.2.3 `--ignore-tests`: 10 (2 SHIELD-004 + 1 SHIELD-006 + 6 SHIELD-009 + 1 SHIELD-012)
+- 14 test-file findings eliminated: 10 SHIELD-004, 4 SHIELD-006
+
+**git**:
+- v0.2.0: 9 findings (all SHIELD-001)
+- v0.2.3 `--ignore-tests`: 7 (2 test-file command injection findings removed)
+
+### Updated Metrics (v0.2.3 with `--ignore-tests`)
+
+| Metric | v0.2.0 | v0.2.3 (`--ignore-tests`) |
+|--------|--------|---------------------------|
+| Servers scanned | 7 | 7 |
+| Total findings | 170 | **69** |
+| True positives | ~48 (28%) | ~37 (54%) |
+| False positives | ~90 (53%) | ~1 (1%) |
+| False negatives | 0 | 0 |
+| Supply-chain (expected) | ~32 (19%) | ~31 (45%) |
+| **Signal-to-noise ratio** | **0.53** | **0.99** |
+
+The signal-to-noise ratio improved from 0.53 to 0.99 — nearly every finding is now either a true positive or an expected supply-chain detection.
