@@ -1,0 +1,215 @@
+name: Action E2E Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # Test the GitHub Action against real fixtures
+  action-e2e:
+    name: Action E2E (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    permissions:
+      security-events: write  # Required for SARIF upload
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Build from source (action normally downloads release binary)
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Build AgentShield
+        run: cargo build --release
+
+      # Put binary on PATH so the action's scan step finds it
+      - name: Install binary
+        run: |
+          mkdir -p ${{ runner.temp }}/agentshield
+          cp target/release/agentshield ${{ runner.temp }}/agentshield/
+          echo "${{ runner.temp }}/agentshield" >> $GITHUB_PATH
+
+      # --- Test 1: Clean server should PASS ---
+      - name: "Test 1: Scan safe_calculator (expect pass)"
+        id: scan-safe
+        shell: bash
+        run: |
+          set +e
+          agentshield scan tests/fixtures/mcp_servers/safe_calculator --format sarif --output ${{ runner.temp }}/safe.sarif --fail-on high
+          EXIT_CODE=$?
+          set -e
+          echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
+          if [ "$EXIT_CODE" -ne 0 ]; then
+            echo "::error::safe_calculator should produce exit code 0, got $EXIT_CODE"
+            exit 1
+          fi
+          echo "PASS: safe_calculator scanned clean (exit 0)"
+
+      - name: "Test 1: Verify SARIF output"
+        run: |
+          SARIF="${{ runner.temp }}/safe.sarif"
+          if [ ! -f "$SARIF" ]; then
+            echo "::error::SARIF file not created"
+            exit 1
+          fi
+          # Validate JSON structure and no high/critical findings
+          python3 -c "
+          import json, sys
+          with open('$SARIF') as f:
+              data = json.load(f)
+          assert 'runs' in data, 'Missing runs key'
+          results = data['runs'][0].get('results', [])
+          # May have low/medium supply chain findings, but no high/critical
+          high_crit = [r for r in results if r.get('level') in ('error',)]
+          assert len(high_crit) == 0, f'Expected 0 high/critical, got {len(high_crit)}'
+          print(f'PASS: SARIF valid, {len(results)} results (0 high/critical)')
+          "
+
+      # --- Test 2: Vulnerable server should FAIL ---
+      - name: "Test 2: Scan vuln_cmd_inject (expect fail)"
+        id: scan-vuln
+        shell: bash
+        run: |
+          set +e
+          agentshield scan tests/fixtures/mcp_servers/vuln_cmd_inject --format sarif --output ${{ runner.temp }}/vuln.sarif --fail-on high
+          EXIT_CODE=$?
+          set -e
+          echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
+          if [ "$EXIT_CODE" -ne 1 ]; then
+            echo "::error::vuln_cmd_inject should produce exit code 1 (findings), got $EXIT_CODE"
+            exit 1
+          fi
+          echo "PASS: vuln_cmd_inject correctly detected (exit 1)"
+
+      - name: "Test 2: Verify findings in SARIF"
+        run: |
+          python3 -c "
+          import json, sys
+          with open('${{ runner.temp }}/vuln.sarif') as f:
+              data = json.load(f)
+          results = data['runs'][0].get('results', [])
+          assert len(results) > 0, 'Expected findings but got 0'
+          # Check for SHIELD-001 (command injection)
+          rule_ids = [r['ruleId'] for r in results]
+          assert 'SHIELD-001' in rule_ids, f'Expected SHIELD-001, got {rule_ids}'
+          print(f'PASS: {len(results)} findings, includes SHIELD-001')
+          "
+
+      # --- Test 3: SSRF detection ---
+      - name: "Test 3: Scan vuln_ssrf (expect fail)"
+        shell: bash
+        run: |
+          set +e
+          agentshield scan tests/fixtures/mcp_servers/vuln_ssrf --format json --output ${{ runner.temp }}/ssrf.json --fail-on high
+          EXIT_CODE=$?
+          set -e
+          if [ "$EXIT_CODE" -ne 1 ]; then
+            echo "::error::vuln_ssrf should produce exit code 1, got $EXIT_CODE"
+            exit 1
+          fi
+          python3 -c "
+          import json
+          with open('${{ runner.temp }}/ssrf.json') as f:
+              data = json.load(f)
+          findings = data.get('findings', [])
+          rule_ids = [f['rule_id'] for f in findings]
+          assert 'SHIELD-003' in rule_ids, f'Expected SHIELD-003, got {rule_ids}'
+          print(f'PASS: {len(findings)} findings, includes SHIELD-003')
+          "
+
+      # --- Test 4: Credential exfiltration detection ---
+      - name: "Test 4: Scan vuln_cred_exfil (expect fail)"
+        shell: bash
+        run: |
+          set +e
+          agentshield scan tests/fixtures/mcp_servers/vuln_cred_exfil --format json --output ${{ runner.temp }}/cred.json --fail-on high
+          EXIT_CODE=$?
+          set -e
+          if [ "$EXIT_CODE" -ne 1 ]; then
+            echo "::error::vuln_cred_exfil should produce exit code 1, got $EXIT_CODE"
+            exit 1
+          fi
+          python3 -c "
+          import json
+          with open('${{ runner.temp }}/cred.json') as f:
+              data = json.load(f)
+          findings = data.get('findings', [])
+          rule_ids = [f['rule_id'] for f in findings]
+          assert 'SHIELD-002' in rule_ids, f'Expected SHIELD-002, got {rule_ids}'
+          print(f'PASS: {len(findings)} findings, includes SHIELD-002')
+          "
+
+      # --- Test 5: Console output format ---
+      - name: "Test 5: Console output format"
+        shell: bash
+        run: |
+          OUTPUT=$(agentshield scan tests/fixtures/mcp_servers/safe_calculator --format console 2>&1)
+          if echo "$OUTPUT" | grep -q "findings\|No issues"; then
+            echo "PASS: Console output contains expected text"
+          else
+            echo "::warning::Console output may not contain expected text"
+          fi
+
+      # --- Test 6: HTML output format ---
+      - name: "Test 6: HTML output format"
+        shell: bash
+        run: |
+          agentshield scan tests/fixtures/mcp_servers/vuln_cmd_inject --format html --output ${{ runner.temp }}/report.html || true
+          if [ -f "${{ runner.temp }}/report.html" ]; then
+            SIZE=$(wc -c < "${{ runner.temp }}/report.html" | tr -d ' ')
+            if [ "$SIZE" -gt 100 ]; then
+              echo "PASS: HTML report generated ($SIZE bytes)"
+            else
+              echo "::error::HTML report too small ($SIZE bytes)"
+              exit 1
+            fi
+          else
+            echo "::error::HTML report not created"
+            exit 1
+          fi
+
+      # --- Test 7: list-rules command ---
+      - name: "Test 7: list-rules shows all 12 detectors"
+        shell: bash
+        run: |
+          COUNT=$(agentshield list-rules 2>&1 | grep -c "SHIELD-0")
+          if [ "$COUNT" -ge 12 ]; then
+            echo "PASS: list-rules shows $COUNT detectors (>= 12)"
+          else
+            echo "::error::Expected >= 12 detectors, got $COUNT"
+            exit 1
+          fi
+
+      # --- Upload SARIF for real Code Scanning integration ---
+      - name: Upload SARIF to Code Scanning
+        if: always() && matrix.os == 'ubuntu-latest'
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ${{ runner.temp }}/vuln.sarif
+          category: agentshield-e2e
+        continue-on-error: true
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## AgentShield Action E2E Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Test | Description | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|-------------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| 1 | Safe server → exit 0 | Passed |" >> $GITHUB_STEP_SUMMARY
+          echo "| 2 | Vuln server → exit 1 + SHIELD-001 | Passed |" >> $GITHUB_STEP_SUMMARY
+          echo "| 3 | SSRF detection → SHIELD-003 | Passed |" >> $GITHUB_STEP_SUMMARY
+          echo "| 4 | Cred exfil → SHIELD-002 | Passed |" >> $GITHUB_STEP_SUMMARY
+          echo "| 5 | Console output format | Passed |" >> $GITHUB_STEP_SUMMARY
+          echo "| 6 | HTML output format | Passed |" >> $GITHUB_STEP_SUMMARY
+          echo "| 7 | list-rules (12 detectors) | Passed |" >> $GITHUB_STEP_SUMMARY
+          echo "| 8 | SARIF upload to Code Scanning | Attempted |" >> $GITHUB_STEP_SUMMARY

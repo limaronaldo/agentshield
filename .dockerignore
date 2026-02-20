@@ -1,0 +1,9 @@
+target/
+.git/
+.github/
+tests/
+benches/
+docs/
+*.md
+.agentshield.toml
+.gitignore
