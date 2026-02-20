@@ -62,6 +62,14 @@ agentshield/
 │   │   └── vuln_cred_exfil/      # SHIELD-002 true positive
 │   ├── crewai_project/           # CrewAI adapter test (v0.2.4)
 │   └── langchain_project/       # LangChain adapter test (v0.2.4)
+├── vscode/                       # VS Code extension (v0.1.0)
+│   ├── package.json              # Extension manifest
+│   ├── tsconfig.json             # TypeScript config
+│   └── src/                      # Extension source (TypeScript)
+│       ├── extension.ts          # Activate, commands, auto-scan
+│       ├── scanner.ts            # Spawn binary, parse JSON
+│       ├── diagnostics.ts        # Finding → vscode.Diagnostic
+│       └── types.ts              # JSON interfaces (mirrors Rust)
 ├── .github/workflows/
 │   ├── ci.yml                    # Test + clippy + fmt + smoke
 │   └── release.yml               # 5-platform binary builds

@@ -1,6 +1,6 @@
 # Next Steps — Post v0.1.0
 
-Status: v0.2.4 complete. 4 framework adapters (MCP, OpenClaw, CrewAI, LangChain), 95 tests, 12 detectors. TypeScript tree-sitter parser, crates.io, Homebrew, GitHub Action e2e, real-world validation (170 → 69 findings with `--ignore-tests`), cross-file validation tracking, PR inline annotations — all done.
+Status: v0.2.4 complete. 4 framework adapters (MCP, OpenClaw, CrewAI, LangChain), 95 tests, 12 detectors, VS Code extension. TypeScript tree-sitter parser, crates.io, Homebrew, GitHub Action e2e, real-world validation (170 → 69 findings with `--ignore-tests`), cross-file validation tracking, PR inline annotations — all done.
 
 ---
 
@@ -82,7 +82,7 @@ Features deferred from v0.1.0:
 | ~~Cross-file taint analysis~~ | ~~[IBVI-482](https://linear.app/mbras/issue/IBVI-482)~~ | ~~Done v0.2.2~~ | ~~Done — eliminates filesystem FPs~~ |
 | ~~GitHub Marketplace submission~~ | ~~[IBVI-483](https://linear.app/mbras/issue/IBVI-483)~~ | ~~Done v0.2.1~~ | ~~High — [listed](https://github.com/marketplace/actions/agentshield-security-scanner)~~ |
 | Blog post / announcement | [IBVI-484](https://linear.app/mbras/issue/IBVI-484) | Medium | High — launch content |
-| VS Code extension | [IBVI-485](https://linear.app/mbras/issue/IBVI-485) | Medium | Medium — inline findings |
+| ~~VS Code extension~~ | ~~[IBVI-485](https://linear.app/mbras/issue/IBVI-485)~~ | ~~Done v0.2.4~~ | ~~Done — inline diagnostics, auto-scan, status bar~~ |
 | ~~LangChain adapter~~ | ~~[IBVI-486](https://linear.app/mbras/issue/IBVI-486)~~ | ~~Done v0.2.4~~ | ~~Done — 4 adapters (MCP, OpenClaw, CrewAI, LangChain), 95 tests~~ |
 | ~~CrewAI adapter~~ | ~~[IBVI-487](https://linear.app/mbras/issue/IBVI-487)~~ | ~~Done v0.2.4~~ | ~~Done — 3 adapters (MCP, OpenClaw, CrewAI), 89 tests~~ |
 | ~~PR annotation test~~ | ~~[IBVI-488](https://linear.app/mbras/issue/IBVI-488)~~ | ~~Done v0.2.3~~ | ~~Done — [PR #1](https://github.com/limaronaldo/agentshield-test/pull/1), 7 inline annotations~~ |
@@ -119,7 +119,7 @@ Eliminates false positives from internal helper functions that receive already-v
 | ~~Re-scan 7 Anthropic servers with v0.2.3~~ | — | ~~Done v0.2.3~~ | ~~Done — 170 → 69 findings (59% reduction)~~ |
 | ~~PR annotation test~~ | ~~[IBVI-488](https://linear.app/mbras/issue/IBVI-488)~~ | ~~Done v0.2.3~~ | ~~Done — [PR #1](https://github.com/limaronaldo/agentshield-test/pull/1)~~ |
 | Blog post / announcement | [IBVI-484](https://linear.app/mbras/issue/IBVI-484) | Medium | High — launch content |
-| VS Code extension | [IBVI-485](https://linear.app/mbras/issue/IBVI-485) | Medium | Medium — inline findings |
+| ~~VS Code extension~~ | ~~[IBVI-485](https://linear.app/mbras/issue/IBVI-485)~~ | ~~Done v0.2.4~~ | ~~Done — inline diagnostics, auto-scan, status bar~~ |
 | ~~LangChain adapter~~ | ~~[IBVI-486](https://linear.app/mbras/issue/IBVI-486)~~ | ~~Done v0.2.4~~ | ~~Done — 4 adapters (MCP, OpenClaw, CrewAI, LangChain), 95 tests~~ |
 | ~~CrewAI adapter~~ | ~~[IBVI-487](https://linear.app/mbras/issue/IBVI-487)~~ | ~~Done v0.2.4~~ | ~~Done~~ |
 
@@ -248,6 +248,40 @@ Checks for ANY of:
 - **`tests/fixtures/langchain_project/`** — test fixture with `pyproject.toml`, `requirements.txt`, `langgraph.json`, `shell_tool.py` (SHIELD-001), `fetch_tool.py` (SHIELD-003)
 - 6 new tests (95 total, up from 89)
 - CLI scan produces 7 findings on fixture: SHIELD-001, -003, -007, -009 x3, -012
+
+---
+
+## 11. v0.2.4 — VS Code Extension (IBVI-485) — Done
+
+Completed Feb 20, 2026. See [IBVI-485](https://linear.app/mbras/issue/IBVI-485).
+
+### What it does
+
+VS Code extension that runs AgentShield on save, maps findings to inline diagnostics (squiggles), and shows results in the Problems panel with a status bar indicator.
+
+### Architecture
+
+Spawns `agentshield scan <workspace> --format json --ignore-tests` as a child process, parses JSON stdout, and creates `vscode.Diagnostic` entries grouped by file.
+
+### Features
+
+- **Inline diagnostics** — severity-colored underlines (Error for Critical/High, Warning for Medium, Info for Low)
+- **Auto-scan on save** — debounced 2s, configurable
+- **Auto-scan on open** — runs when workspace is first opened
+- **Manual scan** — `Cmd+Shift+P` → "AgentShield: Scan Workspace"
+- **Status bar** — shows scan state (spinning, pass, N findings, error)
+- **Clickable rule IDs** — link to docs/RULES.md
+- **Remediation** — shown as related diagnostic information
+- **Configurable** — binary path, ignore-tests, scan-on-save, scan-on-open, timeout
+
+### Implementation
+
+- **`vscode/src/extension.ts`** — activate, commands, debounced save handler, status bar
+- **`vscode/src/scanner.ts`** — `findBinary()`, `runScan()` (spawn + JSON parse)
+- **`vscode/src/diagnostics.ts`** — `updateDiagnostics()` (Finding → vscode.Diagnostic)
+- **`vscode/src/types.ts`** — TypeScript interfaces mirroring Rust JSON output
+- **`vscode/package.json`** — extension manifest with settings and activation events
+- Total: ~350 lines of TypeScript, compiles cleanly
 
 ---
 
