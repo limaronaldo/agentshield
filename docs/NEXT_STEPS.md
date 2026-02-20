@@ -108,19 +108,16 @@ Features deferred from v0.1.0:
 | Feature | Linear | Effort | Impact |
 |---------|--------|--------|--------|
 | ~~TypeScript parser (tree-sitter)~~ | ~~RML-1078~~ | ~~Done v0.2.0~~ | ~~High~~ |
-| Cross-file taint analysis | — | High | High — catches multi-file exfil |
 | ~~Homebrew formula~~ | — | ~~Done v0.2.0~~ | ~~Medium~~ |
-| ~~GitHub Action e2e test~~ | — | ~~Done v0.2.0~~ | ~~High~~ |
-| GitHub Marketplace submission | — | Low | High — discoverability |
-| Blog post / announcement | — | Medium | High — launch content |
-| VS Code extension | — | Medium | Medium — inline findings |
-| LangChain adapter | — | Medium | Medium — new framework |
-| CrewAI adapter | — | Low | Low — new framework |
-
-### Suggested v0.2.0 scope
-
-Focus on TypeScript parser + real-world tuning from step 1 above. That covers
-the most common MCP server language and improves detection quality.
+| ~~GitHub Action e2e test~~ | ~~IBVI-488~~ | ~~Done v0.2.0~~ | ~~High~~ |
+| Real-world validation | [IBVI-481](https://linear.app/mbras/issue/IBVI-481) | Medium | High — tune detectors |
+| Cross-file taint analysis | [IBVI-482](https://linear.app/mbras/issue/IBVI-482) | High | High — catches multi-file exfil |
+| GitHub Marketplace submission | [IBVI-483](https://linear.app/mbras/issue/IBVI-483) | Low | High — discoverability |
+| Blog post / announcement | [IBVI-484](https://linear.app/mbras/issue/IBVI-484) | Medium | High — launch content |
+| VS Code extension | [IBVI-485](https://linear.app/mbras/issue/IBVI-485) | Medium | Medium — inline findings |
+| LangChain adapter | [IBVI-486](https://linear.app/mbras/issue/IBVI-486) | Medium | Medium — new framework |
+| CrewAI adapter | [IBVI-487](https://linear.app/mbras/issue/IBVI-487) | Low | Low — new framework |
+| PR annotation test | [IBVI-488](https://linear.app/mbras/issue/IBVI-488) | Low | Low — verify inline annotations |
 
 ---
 
@@ -148,8 +145,8 @@ the most common MCP server language and improves detection quality.
 ## Linear Project Reference
 
 - Project: AgentShield - Security Scanner for AI Agent Extensions
-- Project ID: 9996399b-d697-44fe-a4bf-2756f58a39ad (IBVI org)
-- Team ID: 65a52083-4c10-4a6a-b1bc-0a5d63cbe207 (IBVI-AI / RML)
+- Project ID: bafa5ae7-f48a-4a45-8ec8-14f49fcac779 (IBVI org)
+- Team: IBVI (e792ad0a-a7d5-4927-b7ef-4fe22dde0fd4)
 - Repo: https://github.com/limaronaldo/agentshield
-- All v0.1.0 issues: Done (RML-1062 through RML-1091, migrated from MBRAS IBVI-311..340)
-- Deferred: RML-1078 (TypeScript parser → v0.2.0)
+- v0.1.0 issues: Done (RML-1062..1091, migrated from MBRAS IBVI-311..340)
+- v0.2.0 issues: IBVI-481..488 (created Feb 20, 2026)
