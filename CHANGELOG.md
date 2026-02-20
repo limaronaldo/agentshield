@@ -17,12 +17,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - TSX/JSX file support via `LANGUAGE_TSX` grammar
   - Feature-gated: `typescript` feature (enabled by default)
   - Regex fallback preserved when feature is disabled (`--no-default-features`)
+- **Homebrew formula** — `brew tap limaronaldo/engram && brew install agentshield`
+- **Pre-built binaries** — 5-platform release (Linux x86/arm64, macOS x86/arm64, Windows)
 
 ### Changed
 
 - Default features now include `typescript` alongside `python`
 - `full` feature includes both `python` and `typescript`
+- Crate renamed to `agent-shield` on crates.io (binary name unchanged: `agentshield`)
 - Version bump: 0.1.0 → 0.2.0
+
+### Fixed
+
+- Dockerfile now copies `benches/` directory (build failed when Cargo.toml referenced missing bench)
 
 ## [0.1.0] - 2026-02-13
 

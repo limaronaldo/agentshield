@@ -151,23 +151,10 @@ gh run watch
 
 ---
 
-## 3. Publish to crates.io
+## 3. ~~Publish to crates.io~~ — Done
 
-```bash
-# Login (one-time, needs API token from https://crates.io/settings/tokens)
-cargo login
-
-# Dry run first
-cd /path/to/agentshield
-cargo publish --dry-run
-
-# Publish
-cargo publish
-
-# Verify
-cargo install agentshield
-agentshield --version
-```
+Published as [`agent-shield`](https://crates.io/crates/agent-shield) v0.2.0 on Feb 20, 2026.
+(`agentshield` name was taken by an unrelated crate; binary name remains `agentshield`.)
 
 ### Pre-publish checklist
 
@@ -176,6 +163,7 @@ agentshield --version
 - [x] LICENSE exists
 - [x] `cargo publish --dry-run` succeeds
 - [x] No private/internal dependencies
+- [x] Published to crates.io as `agent-shield`
 
 ---
 
@@ -187,7 +175,7 @@ Features deferred from v0.1.0:
 |---------|--------|--------|--------|
 | ~~TypeScript parser (tree-sitter)~~ | ~~RML-1078~~ | ~~Done v0.2.0~~ | ~~High~~ |
 | Cross-file taint analysis | — | High | High — catches multi-file exfil |
-| Homebrew formula | — | Low | Medium — easier macOS install |
+| ~~Homebrew formula~~ | — | ~~Done v0.2.0~~ | ~~Medium~~ |
 | GitHub Marketplace submission | — | Low | High — discoverability |
 | Blog post / announcement | — | Medium | High — launch content |
 | VS Code extension | — | Medium | Medium — inline findings |
