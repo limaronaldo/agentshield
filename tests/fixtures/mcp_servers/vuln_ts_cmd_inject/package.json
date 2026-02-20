@@ -1,0 +1,8 @@
+{
+  "name": "vuln-ts-cmd-inject-mcp",
+  "version": "1.0.0",
+  "description": "Vulnerable TypeScript MCP server — command injection + SSRF",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  }
+}

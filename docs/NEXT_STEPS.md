@@ -1,6 +1,6 @@
 # Next Steps — Post v0.1.0
 
-Status: v0.1.0 shipped Feb 13, 2026. All 4 epics done, 5-platform release verified.
+Status: v0.2.0 shipped Feb 20, 2026. TypeScript tree-sitter parser added, published to crates.io.
 
 ---
 
@@ -174,8 +174,8 @@ agentshield --version
 - [x] Cargo.toml has: name, version, description, license, repository, readme
 - [x] README.md exists
 - [x] LICENSE exists
-- [ ] `cargo publish --dry-run` succeeds
-- [ ] No private/internal dependencies
+- [x] `cargo publish --dry-run` succeeds
+- [x] No private/internal dependencies
 
 ---
 
@@ -185,7 +185,7 @@ Features deferred from v0.1.0:
 
 | Feature | Linear | Effort | Impact |
 |---------|--------|--------|--------|
-| TypeScript parser (tree-sitter) | IBVI-327 | Medium | High — most MCP servers are TS |
+| ~~TypeScript parser (tree-sitter)~~ | ~~RML-1078~~ | ~~Done v0.2.0~~ | ~~High~~ |
 | Cross-file taint analysis | — | High | High — catches multi-file exfil |
 | Homebrew formula | — | Low | Medium — easier macOS install |
 | GitHub Marketplace submission | — | Low | High — discoverability |
@@ -225,8 +225,8 @@ the most common MCP server language and improves detection quality.
 ## Linear Project Reference
 
 - Project: AgentShield - Security Scanner for AI Agent Extensions
-- Project ID: ebf71b57-0021-4894-9165-8ac967cca384
-- Team ID: e792ad0a-a7d5-4927-b7ef-4fe22dde0fd4
+- Project ID: 9996399b-d697-44fe-a4bf-2756f58a39ad (IBVI org)
+- Team ID: 65a52083-4c10-4a6a-b1bc-0a5d63cbe207 (IBVI-AI / RML)
 - Repo: https://github.com/limaronaldo/agentshield
-- All v0.1.0 issues: Done (IBVI-311 through IBVI-340)
-- Deferred: IBVI-327 (TypeScript parser → v0.2.0)
+- All v0.1.0 issues: Done (RML-1062 through RML-1091, migrated from MBRAS IBVI-311..340)
+- Deferred: RML-1078 (TypeScript parser → v0.2.0)

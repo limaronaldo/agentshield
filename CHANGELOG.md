@@ -5,6 +5,25 @@ All notable changes to AgentShield will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-02-20
+
+### Added
+
+- **TypeScript tree-sitter parser** — AST-based parsing replaces regex for TypeScript/JavaScript
+  - Multi-line call expression detection (regex parser missed calls spanning multiple lines)
+  - Accurate line/column source locations from AST node positions
+  - Proper scope-aware parameter tracking across nested callbacks and closures
+  - Destructured parameter support (`{ url }` patterns now tracked for taint analysis)
+  - TSX/JSX file support via `LANGUAGE_TSX` grammar
+  - Feature-gated: `typescript` feature (enabled by default)
+  - Regex fallback preserved when feature is disabled (`--no-default-features`)
+
+### Changed
+
+- Default features now include `typescript` alongside `python`
+- `full` feature includes both `python` and `typescript`
+- Version bump: 0.1.0 → 0.2.0
+
 ## [0.1.0] - 2026-02-13
 
 ### Added
@@ -58,4 +77,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Typosquat detection via Levenshtein distance against popular packages
   - Unpinned dependency version detection
 
+[0.2.0]: https://github.com/limaronaldo/agentshield/releases/tag/v0.2.0
 [0.1.0]: https://github.com/limaronaldo/agentshield/releases/tag/v0.1.0

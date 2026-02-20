@@ -1,6 +1,7 @@
 pub mod json_schema;
 pub mod python;
 pub mod shell;
+pub mod typescript;
 
 use std::path::Path;
 
@@ -39,6 +40,7 @@ pub trait LanguageParser: Send + Sync {
 pub fn parser_for_language(lang: Language) -> Option<Box<dyn LanguageParser>> {
     match lang {
         Language::Python => Some(Box::new(python::PythonParser)),
+        Language::TypeScript | Language::JavaScript => Some(Box::new(typescript::TypeScriptParser)),
         Language::Shell => Some(Box::new(shell::ShellParser)),
         _ => None,
     }

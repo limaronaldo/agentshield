@@ -1,6 +1,6 @@
 [package]
 name = "agentshield"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors = ["Ronaldo Lima"]
 description = "Security scanner for AI agent extensions — offline-first, multi-framework, SARIF output"
@@ -20,13 +20,14 @@ name = "agentshield"
 path = "src/bin/cli.rs"
 
 [features]
-default = ["python"]
+default = ["python", "typescript"]
 
 # Language parsers (feature-gated to control binary size)
 python = ["dep:tree-sitter-python"]
+typescript = ["dep:tree-sitter-typescript"]
 
 # All features
-full = ["python"]
+full = ["python", "typescript"]
 
 [dependencies]
 # CLI
@@ -42,6 +43,7 @@ thiserror = "1.0"
 # Tree-sitter core + language grammars
 tree-sitter = "0.24"
 tree-sitter-python = { version = "0.23", optional = true }
+tree-sitter-typescript = { version = "0.23", optional = true }
 
 # Regex for shell parser, source/sink patterns
 regex = "1.10"
