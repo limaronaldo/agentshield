@@ -691,8 +691,11 @@ fn classify_argument_text(arg_text: &str, param_names: &HashSet<String>) -> Argu
     if (first_arg.starts_with('"') && first_arg.ends_with('"'))
         || (first_arg.starts_with('\'') && first_arg.ends_with('\''))
     {
-        let val = &first_arg[1..first_arg.len() - 1];
-        return ArgumentSource::Literal(val.to_string());
+        if first_arg.len() >= 2 {
+            let val = &first_arg[1..first_arg.len() - 1];
+            return ArgumentSource::Literal(val.to_string());
+        }
+        return ArgumentSource::Literal(String::new());
     }
 
     // Template literal with interpolation: `...${var}...`
