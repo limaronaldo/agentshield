@@ -173,7 +173,7 @@ After implementing the P1 fixes, re-scanning the two previously-missed servers:
 
 ---
 
-## Metrics
+## Metrics (v0.2.0)
 
 | Metric | Value |
 |--------|-------|
@@ -184,3 +184,48 @@ After implementing the P1 fixes, re-scanning the two previously-missed servers:
 | False negatives | ~~2 critical~~ → **0** (both fixed) |
 | Parser crashes | 1 (fixed) |
 | Supply-chain (expected) | ~32 (19%) |
+
+---
+
+## v0.2.2 Update: Cross-File Validation Tracking
+
+**Date:** February 20, 2026
+**Scanner:** AgentShield v0.2.2 (commit `25a7757`)
+**Linear:** [IBVI-482](https://linear.app/mbras/issue/IBVI-482)
+
+### What Changed
+
+v0.2.2 adds cross-file sanitizer-aware validation tracking. When a helper function is only ever called with sanitized arguments (e.g., after `validatePath()`), its parameters are downgraded from tainted to `Sanitized`, eliminating false positives.
+
+### Validated with Test Fixture
+
+The `safe_filesystem` fixture (`tests/fixtures/mcp_servers/safe_filesystem/`) mimics Anthropic's filesystem MCP server pattern:
+
+```
+index.ts      — public handler: validatePath(args.path) → readFileContent(validPath)
+operations.ts — internal helper: fs.readFile(filePath, 'utf-8')
+utils.ts      — sanitizer: validatePath() with allowlist check
+```
+
+**Result:** 0 SHIELD-004 findings (previously would have produced false positives on every `fs.readFile`/`fs.writeFile`/`fs.readdir` in operations.ts).
+
+### Expected Impact on Real Filesystem Server
+
+The v0.2.0 scan of Anthropic's filesystem server produced:
+- 54 SHIELD-004 (Arbitrary File Access) — all post-validation, all false positives
+- 33 SHIELD-006 (Self-Modification) — all writes to validated paths, all false positives
+
+With v0.2.2 cross-file analysis, the production code findings (8 SHIELD-004 + SHIELD-006 in non-test files) should be eliminated because all call sites pass through `validatePath()`.
+
+Test file findings (~79) remain — these need the `--ignore-tests` feature (not yet implemented).
+
+### Updated Improvement Priorities
+
+| Priority | Issue | Impact | Status |
+|----------|-------|--------|--------|
+| **P0** | ~~Parser panic on single-char strings~~ | Fixed v0.2.0 | Done |
+| **P1** | ~~Async HTTP client detection~~ | Fixed v0.2.1 | Done |
+| **P1** | ~~GitPython command detection~~ | Fixed v0.2.1 | Done |
+| **P2** | ~~Typosquat allowlist~~ | Fixed v0.2.1 | Done |
+| **P3** | ~~Cross-file validation tracking~~ | Fixed v0.2.2 | Done |
+| **P2** | Test file exclusion (`--ignore-tests`) | Reduces noise ~60% | Pending |

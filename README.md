@@ -20,7 +20,7 @@ AI agents are being given tools that can execute commands, read files, make HTTP
 - **Install backdoors at runtime** — `pip install` inside a tool handler
 - **Serve as SSRF proxies** — fetch attacker-controlled URLs from tool parameters
 
-AgentShield catches these patterns with 12 built-in detectors, producing SARIF reports that integrate directly with GitHub Code Scanning.
+AgentShield catches these patterns with 12 built-in detectors and cross-file validation tracking that eliminates false positives, producing SARIF reports that integrate directly with GitHub Code Scanning.
 
 ### How it compares
 
@@ -29,6 +29,7 @@ AgentShield catches these patterns with 12 built-in detectors, producing SARIF r
 | Rust single binary | Yes | No (Python) | No (Cloud) |
 | Offline / local-first | Yes | Partial | No |
 | Multi-framework | MCP, OpenClaw | MCP only | MCP only |
+| Cross-file analysis | Yes | No | No |
 | SARIF output | Yes | No | No |
 | GitHub Action | Yes | No | No |
 | Static analysis (AST) | tree-sitter | Regex | Runtime |
@@ -220,6 +221,9 @@ OpenClaw  TypeScript,
           JSON Schema
   └────┬────────────┘
        ▼
+  Cross-File Analysis
+  (sanitizer tracking)
+       ▼
   Unified IR (ScanTarget)
        │
   ┌────▼────┐
@@ -232,7 +236,7 @@ OpenClaw  TypeScript,
   HTML, Console
 ```
 
-Adapters translate framework-specific files into a **unified intermediate representation** (`ScanTarget`). Detectors only read the IR, so adding a new framework never requires changing any detector.
+Adapters translate framework-specific files into a **unified intermediate representation** (`ScanTarget`). Cross-file analysis eliminates false positives from helper functions that receive already-validated input. Detectors only read the IR, so adding a new framework never requires changing any detector.
 
 ---
 

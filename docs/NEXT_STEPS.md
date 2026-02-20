@@ -1,6 +1,6 @@
 # Next Steps — Post v0.1.0
 
-Status: v0.2.0 shipped Feb 20, 2026. TypeScript tree-sitter parser, crates.io, Homebrew, GitHub Action e2e, real-world validation — all done.
+Status: v0.2.2 shipped Feb 20, 2026. TypeScript tree-sitter parser, crates.io, Homebrew, GitHub Action e2e, real-world validation, cross-file validation tracking — all done.
 
 ---
 
@@ -27,7 +27,7 @@ Completed Feb 20, 2026. Scanned 7 Anthropic reference MCP servers. See `docs/VAL
 | Priority | Issue | Impact | Effort |
 |----------|-------|--------|--------|
 | **P2** | Test file exclusion (`--ignore-tests`) | Medium — reduces noise ~60% | Low |
-| **P3** | Cross-file validation tracking | High — resolves filesystem FPs | High |
+| ~~**P3**~~ | ~~Cross-file validation tracking~~ | ~~Done v0.2.2 (IBVI-482)~~ | ~~Done~~ |
 
 ---
 
@@ -79,7 +79,7 @@ Features deferred from v0.1.0:
 | ~~Homebrew formula~~ | — | ~~Done v0.2.0~~ | ~~Medium~~ |
 | ~~GitHub Action e2e test~~ | ~~IBVI-488~~ | ~~Done v0.2.0~~ | ~~High~~ |
 | ~~Real-world validation~~ | ~~[IBVI-481](https://linear.app/mbras/issue/IBVI-481)~~ | ~~Done v0.2.0~~ | ~~High — 170 findings, 4 bugs fixed~~ |
-| Cross-file taint analysis | [IBVI-482](https://linear.app/mbras/issue/IBVI-482) | High | High — catches multi-file exfil |
+| ~~Cross-file taint analysis~~ | ~~[IBVI-482](https://linear.app/mbras/issue/IBVI-482)~~ | ~~Done v0.2.2~~ | ~~Done — eliminates filesystem FPs~~ |
 | ~~GitHub Marketplace submission~~ | ~~[IBVI-483](https://linear.app/mbras/issue/IBVI-483)~~ | ~~Done v0.2.1~~ | ~~High — [listed](https://github.com/marketplace/actions/agentshield-security-scanner)~~ |
 | Blog post / announcement | [IBVI-484](https://linear.app/mbras/issue/IBVI-484) | Medium | High — launch content |
 | VS Code extension | [IBVI-485](https://linear.app/mbras/issue/IBVI-485) | Medium | Medium — inline findings |
@@ -89,7 +89,42 @@ Features deferred from v0.1.0:
 
 ---
 
-## 5. Launch / Promotion
+## 5. v0.2.2 — Cross-File Validation Tracking — Done
+
+Completed Feb 20, 2026. See [IBVI-482](https://linear.app/mbras/issue/IBVI-482).
+
+### What it does
+
+Post-parsing analysis phase that recognizes sanitizer function calls (`validatePath`, `path.resolve`, etc.), tracks which variables hold sanitized results, and when a function is only called with sanitized arguments, downgrades its parameters from tainted to `Sanitized`. Detectors already check `is_tainted()` — `Sanitized` returns `false` — so **zero detector changes were needed**.
+
+### Implementation
+
+- `ArgumentSource::Sanitized { sanitizer }` variant in `src/ir/mod.rs`
+- `FunctionDef`, `CallSite`, `sanitized_vars` in `src/parser/mod.rs`
+- TypeScript + Python parsers extract these structures
+- `apply_cross_file_sanitization()` in `src/analysis/cross_file.rs`
+- 3-phase adapter pipeline (parse → cross-file analysis → merge) in MCP and OpenClaw adapters
+- `safe_filesystem` test fixture (3 TypeScript files mimicking Anthropic's filesystem MCP server)
+- 14 new tests (83 total, up from 69)
+
+### Impact
+
+Eliminates false positives from internal helper functions that receive already-validated input — the primary source of noise in the filesystem MCP server scan (54 SHIELD-004 + 33 SHIELD-006 findings were all false positives).
+
+### Post-v0.2.2 Roadmap
+
+| Feature | Linear | Effort | Impact |
+|---------|--------|--------|--------|
+| Test file exclusion (`--ignore-tests`) | — | Low | Medium — reduces remaining noise |
+| Re-scan 7 Anthropic servers with v0.2.2 | — | Low | Medium — measure FP reduction |
+| Blog post / announcement | [IBVI-484](https://linear.app/mbras/issue/IBVI-484) | Medium | High — launch content |
+| VS Code extension | [IBVI-485](https://linear.app/mbras/issue/IBVI-485) | Medium | Medium — inline findings |
+| LangChain adapter | [IBVI-486](https://linear.app/mbras/issue/IBVI-486) | Medium | Medium — new framework |
+| CrewAI adapter | [IBVI-487](https://linear.app/mbras/issue/IBVI-487) | Low | Low — new framework |
+
+---
+
+## 6. Launch / Promotion
 
 ### Blog post outline: "We scanned N MCP servers — here's what we found"
 

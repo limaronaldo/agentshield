@@ -8,12 +8,13 @@ AgentShield is a **static analysis tool** that scans AI agent extensions for sec
 vulnerabilities. It follows a pipeline architecture:
 
 ```
-Input Files → Adapter → Unified IR → Detectors → Findings → Policy → Output
+Input Files → Adapter (parse → cross-file analysis → merge) → Unified IR → Detectors → Findings → Policy → Output
 ```
 
 The key design principle is **separation of concerns**: adapters handle
-framework-specific parsing, detectors operate only on the unified IR, and
-output formatters produce different report formats.
+framework-specific parsing, cross-file analysis eliminates false positives
+from validated helper functions, detectors operate only on the unified IR,
+and output formatters produce different report formats.
 
 ## Pipeline Stages
 
@@ -42,22 +43,79 @@ pub trait Adapter: Send + Sync {
 ### 2. Parser (Language Analysis)
 
 ```
+src/parser/mod.rs         — Parser trait, ParsedFile, FunctionDef, CallSite
 src/parser/python.rs      — tree-sitter AST + compiled regex
+src/parser/typescript.rs  — tree-sitter TypeScript/TSX + regex fallback
 src/parser/shell.rs       — regex-based command extraction
 src/parser/json_schema.rs — JSON Schema → ToolSurface
 ```
 
-Parsers extract structured information from source files:
+Parsers extract structured information from source files into `ParsedFile`:
 
-- **Function calls** with argument sources (literal, parameter, interpolated, env var)
+- **Function calls** with argument sources (literal, parameter, interpolated, env var, sanitized)
 - **Environment variable access** patterns
 - **File operations** with path sources
 - **Network operations** with URL sources
 - **Shell commands** (pip install, curl, eval)
+- **Function definitions** (`FunctionDef`) — name, parameters, `is_exported` (v0.2.2)
+- **Call sites** (`CallSite`) — callee name, classified arguments, caller context (v0.2.2)
+- **Sanitized variables** (`sanitized_vars`) — variables holding return values of sanitizer functions (v0.2.2)
 
-The Python parser uses tree-sitter for AST parsing combined with compiled
-regex patterns for source/sink detection. This hybrid approach balances
-accuracy with performance.
+Python and TypeScript parsers use tree-sitter for AST parsing combined with compiled
+regex patterns for source/sink detection. TypeScript also has a regex fallback when
+the `typescript` feature is disabled.
+
+### 2.5. Cross-File Analysis (v0.2.2)
+
+```
+src/analysis/cross_file.rs — Sanitizer-aware call-site analysis
+```
+
+Runs **after parsing, before detection** as part of the adapter pipeline. Eliminates
+false positives from internal helper functions that receive already-validated input.
+
+#### The Problem
+
+```typescript
+// index.ts — public handler
+const validPath = await validatePath(args.path);  // sanitizer
+const content = await readFileContent(validPath);  // passes sanitized value
+
+// operations.ts — internal helper
+export async function readFileContent(filePath: string) {
+    return fs.readFile(filePath, 'utf-8');  // ← was flagged as SHIELD-004 (false positive)
+}
+```
+
+Without cross-file analysis, the scanner sees `filePath` as a `Parameter` (tainted)
+and flags the `fs.readFile` call. But the caller always validates input first.
+
+#### The Algorithm
+
+`apply_cross_file_sanitization(&mut [(PathBuf, ParsedFile)])` runs in 4 phases:
+
+1. **Build function def map** — `HashMap<name, Vec<(file_idx, params, is_exported)>>`
+2. **Build call-site map** — `HashMap<callee, Vec<argument_sources>>`
+3. **Check each function** — if ALL call sites pass `Sanitized` or `Literal` for a parameter, mark it for downgrade
+4. **Downgrade operations** — replace `ArgumentSource::Parameter { name }` with `ArgumentSource::Sanitized { sanitizer }` in the callee's commands, file ops, network ops, and dynamic exec
+
+**Conservative rules:**
+- Exported functions with zero discovered call sites stay tainted (can't prove safety)
+- If ANY call site passes a tainted argument, the parameter stays tainted
+- One level deep only (caller → callee, not recursive)
+
+#### Sanitizer Registry
+
+`is_sanitizer(name)` recognizes functions by exact name, method part after dot, or pattern:
+
+| Category | Names |
+|----------|-------|
+| Path | `validatePath`, `sanitizePath`, `normalizePath`, `resolvePath`, `canonicalizePath`, `realpath` |
+| Node.js | `resolve`, `normalize` (method part of `path.resolve`, `path.normalize`) |
+| Python | `abspath`, `normpath` (method part of `os.path.abspath`, `os.path.normpath`) |
+| URL | `parseUrl`, `urlparse` |
+| Type coercion | `parseInt`, `parseFloat`, `Number`, `int`, `float`, `str` |
+| Pattern-based | anything matching `*validate*path*` or `*validate*url*` |
 
 ### 3. Unified IR (Intermediate Representation)
 
@@ -93,15 +151,17 @@ The core insight: detectors don't need full dataflow analysis. They need to know
 
 ```rust
 pub enum ArgumentSource {
-    Literal(String),           // Safe — hardcoded value
-    Parameter { name: String }, // Dangerous — from tool input
-    EnvVar { name: String },   // Context-dependent
-    Interpolated,              // Dangerous — string concatenation
-    Unknown,                   // Conservative — flag with lower confidence
+    Literal(String),              // Safe — hardcoded value
+    Parameter { name: String },   // Dangerous — from tool input
+    EnvVar { name: String },      // Context-dependent
+    Interpolated,                 // Dangerous — string concatenation
+    Unknown,                      // Conservative — flag with lower confidence
+    Sanitized { sanitizer: String }, // Safe — validated by cross-file analysis (v0.2.2)
 }
 ```
 
-`is_tainted()` returns `true` for everything except `Literal`.
+`is_tainted()` returns `true` for everything except `Literal` and `Sanitized`.
+The `Sanitized` variant was added in v0.2.2 and is produced by `apply_cross_file_sanitization()` — zero detector changes were needed since detectors already check `is_tainted()`.
 
 ### 4. Detector Engine
 
@@ -170,8 +230,17 @@ All formatters receive `(&[Finding], &PolicyVerdict)` and produce a `String`.
         │ Adapter  │   │ Adapter  │    │ LangChain │
         └────┬─────┘   └────┬─────┘    └───────────┘
              │               │
-             │  ┌────────────┘
-             ▼  ▼
+             │  3-phase pipeline per adapter:
+             │
+             │  Phase 1: Parse each source file
+             │           ↓ Vec<(PathBuf, ParsedFile)>
+             │
+             │  Phase 2: apply_cross_file_sanitization()
+             │           ↓ downgrades tainted → Sanitized
+             │
+             │  Phase 3: Merge into ScanTarget
+             │
+             ▼
         Vec<ScanTarget>
              │
              ▼
@@ -215,6 +284,7 @@ Exit codes: `0` = pass, `1` = findings above threshold, `2` = scan error.
 
 - Single-threaded pipeline (detectors are fast enough)
 - tree-sitter parsing is the heaviest operation
+- Cross-file analysis is O(functions × call_sites) — negligible overhead
 - Regex patterns are compiled once via `once_cell::Lazy`
 - No network I/O — fully offline
 - Typical scan: < 50ms for a single MCP server
