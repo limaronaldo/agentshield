@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /build
 COPY Cargo.toml Cargo.lock* ./
 COPY src/ src/
+COPY benches/ benches/
 
 RUN cargo build --release --locked 2>/dev/null || cargo build --release
 
