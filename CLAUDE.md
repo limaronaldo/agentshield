@@ -184,6 +184,8 @@ CLI flag overrides config (`options.ignore_tests || config.scan.ignore_tests`).
 - Conventional Commits for git messages
 - Parsers extract `FunctionDef`, `CallSite`, and `sanitized_vars` for cross-file analysis
 - `ArgumentSource::Sanitized` is the safe variant for cross-file validated params — `is_tainted()` returns `false`
+- v0.2.3 release has 5-platform binaries: https://github.com/limaronaldo/agentshield/releases/tag/v0.2.3
+- PR inline annotations verified via [agentshield-test PR #1](https://github.com/limaronaldo/agentshield-test/pull/1) (IBVI-488)
 
 ## Version History
 
@@ -193,4 +195,4 @@ CLI flag overrides config (`options.ignore_tests || config.scan.ignore_tests`).
 | 0.2.0 | 69 | TypeScript tree-sitter parser, Homebrew, GitHub Action |
 | 0.2.1 | 69 | Async HTTP detection, GitPython, typosquat allowlist, Marketplace |
 | 0.2.2 | 83 | Cross-file validation tracking (IBVI-482) |
-| 0.2.3 | 83 | `--ignore-tests` flag, `[scan]` config section |
+| 0.2.3 | 83 | `--ignore-tests` flag, `[scan]` config section, 5-platform release, PR annotations verified |

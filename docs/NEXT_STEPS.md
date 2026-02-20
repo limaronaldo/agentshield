@@ -1,6 +1,6 @@
 # Next Steps — Post v0.1.0
 
-Status: v0.2.3 shipped Feb 20, 2026. TypeScript tree-sitter parser, crates.io, Homebrew, GitHub Action e2e, real-world validation, cross-file validation tracking, `--ignore-tests` — all done.
+Status: v0.2.3 shipped Feb 20, 2026 with 5-platform release binaries. TypeScript tree-sitter parser, crates.io, Homebrew, GitHub Action e2e, real-world validation (170 → 69 findings with `--ignore-tests`), cross-file validation tracking, PR inline annotations — all done.
 
 ---
 
@@ -41,7 +41,7 @@ Tested Feb 20, 2026. Test repo: [`limaronaldo/agentshield-test`](https://github.
 - [x] Scan finds SHIELD-001, SHIELD-002, SHIELD-003, SHIELD-004, SHIELD-007 (7 total findings)
 - [x] SARIF uploads to Code Scanning tab (5 alerts with source locations)
 - [x] Action fails with exit code 1 (findings above `high` threshold)
-- [ ] Creating a PR shows annotations inline (not yet tested)
+- [x] Creating a PR shows annotations inline — **verified** (7 annotations on `tools.py`)
 
 ### SARIF bugs found and fixed
 
@@ -85,7 +85,7 @@ Features deferred from v0.1.0:
 | VS Code extension | [IBVI-485](https://linear.app/mbras/issue/IBVI-485) | Medium | Medium — inline findings |
 | LangChain adapter | [IBVI-486](https://linear.app/mbras/issue/IBVI-486) | Medium | Medium — new framework |
 | CrewAI adapter | [IBVI-487](https://linear.app/mbras/issue/IBVI-487) | Low | Low — new framework |
-| PR annotation test | [IBVI-488](https://linear.app/mbras/issue/IBVI-488) | Low | Low — verify inline annotations |
+| ~~PR annotation test~~ | ~~[IBVI-488](https://linear.app/mbras/issue/IBVI-488)~~ | ~~Done v0.2.3~~ | ~~Done — [PR #1](https://github.com/limaronaldo/agentshield-test/pull/1), 7 inline annotations~~ |
 
 ---
 
@@ -116,7 +116,8 @@ Eliminates false positives from internal helper functions that receive already-v
 | Feature | Linear | Effort | Impact |
 |---------|--------|--------|--------|
 | ~~Test file exclusion (`--ignore-tests`)~~ | — | ~~Done v0.2.3~~ | ~~Done~~ |
-| Re-scan 7 Anthropic servers with v0.2.3 | — | Low | Medium — measure FP reduction |
+| ~~Re-scan 7 Anthropic servers with v0.2.3~~ | — | ~~Done v0.2.3~~ | ~~Done — 170 → 69 findings (59% reduction)~~ |
+| ~~PR annotation test~~ | ~~[IBVI-488](https://linear.app/mbras/issue/IBVI-488)~~ | ~~Done v0.2.3~~ | ~~Done — [PR #1](https://github.com/limaronaldo/agentshield-test/pull/1)~~ |
 | Blog post / announcement | [IBVI-484](https://linear.app/mbras/issue/IBVI-484) | Medium | High — launch content |
 | VS Code extension | [IBVI-485](https://linear.app/mbras/issue/IBVI-485) | Medium | Medium — inline findings |
 | LangChain adapter | [IBVI-486](https://linear.app/mbras/issue/IBVI-486) | Medium | Medium — new framework |
@@ -147,9 +148,47 @@ Filters out test files at the file-walking stage (before parsing) via `is_test_f
 - CLI flag OR's with config: `options.ignore_tests || config.scan.ignore_tests`
 - `ignore-tests` input added to `action.yml` GitHub Action
 
-### Expected Impact
+### Measured Impact (v0.2.3 Re-Scan)
 
-The v0.2.0 validation report showed ~53% false positives, mostly from test files. With `--ignore-tests`, the filesystem server's ~79 test-file findings and the memory server's 17 test-file findings would be eliminated, reducing total noise by approximately 60%.
+Re-scanned all 7 Anthropic reference servers with v0.2.3. Combined with cross-file analysis (v0.2.2):
+
+| Metric | v0.2.0 | v0.2.3 (`--ignore-tests`) |
+|--------|--------|---------------------------|
+| Total findings | 170 | **69** (59% reduction) |
+| Signal-to-noise ratio | 0.53 | **0.99** |
+| False positives | ~90 (53%) | ~1 (1%) |
+
+Biggest impact: filesystem (93 → 20, -78%), memory (24 → 10, -58%). See `docs/VALIDATION_REPORT.md` for full breakdown.
+
+---
+
+## 8. v0.2.3 — PR Annotation Test (IBVI-488) — Done
+
+Completed Feb 20, 2026. See [IBVI-488](https://linear.app/mbras/issue/IBVI-488).
+
+### What was tested
+
+Created [PR #1](https://github.com/limaronaldo/agentshield-test/pull/1) on `limaronaldo/agentshield-test` with `src/tools.py` containing intentional vulnerabilities (SHIELD-001, -002, -003, -004, -006, -007, -011).
+
+### Results
+
+- [x] Action downloads v0.2.3 binary for ubuntu-latest (x86_64-unknown-linux-gnu)
+- [x] Scan detects 12 findings (5 in `server.py`, 7 in `tools.py`)
+- [x] SARIF uploads to Code Scanning — "AgentShield" check passes
+- [x] 12 Code Scanning alerts visible on PR branch
+- [x] 7 inline annotations on `tools.py` in Files changed tab (all on lines within PR diff)
+- [x] Action fails with exit code 1 (findings above `high` threshold)
+
+### v0.2.3 Release
+
+Created as part of this test. 5-platform binary release:
+- `agentshield-v0.2.3-x86_64-unknown-linux-gnu.tar.gz`
+- `agentshield-v0.2.3-aarch64-unknown-linux-gnu.tar.gz`
+- `agentshield-v0.2.3-x86_64-apple-darwin.tar.gz`
+- `agentshield-v0.2.3-aarch64-apple-darwin.tar.gz`
+- `agentshield-v0.2.3-x86_64-pc-windows-msvc.zip`
+
+Release: https://github.com/limaronaldo/agentshield/releases/tag/v0.2.3
 
 ---
 
